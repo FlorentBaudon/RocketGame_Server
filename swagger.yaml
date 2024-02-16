@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: RocketGame
+  description: |-
+    RocketGame server API
+  contact:
+    email: florent.baudon@gmail.com
+  #license:
+  #  name: Apache 2.0
+  #  url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+servers:
+  - url: https://rgapi.atomicspace.fr/v1
+    description: Production server
+  - url: http://127.0.0.1:7070/v1
+    description: Local dev server
+tags:
+  - name: user
+    description: Operations about users
+  - name: game
+    description: Operations about games
+  - name: scan
+    description: Operations to scanning games
+paths:
+  /game:
+    get:
+      tags: 
+        - game
+      summary: Get game list
+      description: List all games in collection
+      operationId: listGames
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Game'   
+        '404':
+          description: No games found
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RequestLimiter'
+  /game/{gameID}:
+    get:
+      tags:
+        - game
+      summary: Get game by id
+      description: Get game by id
+      operationId: getGameByID
+      parameters:
+        - name: gameID
+          in: path
+          description: ID of game to return
+          required: true
+          example: 41494
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '404':
+          description: Game not found
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RequestLimiter'
+    put:
+      tags:
+        - game
+      summary: Update game ID
+      description: Update game ID and scrap data
+      operationId: updateGameID
+      parameters:
+        - name: gameID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newGameID:
+                  type: string
+                  example: "456"
+      responses:
+        '200':
+          description: Game updated  
+        '404':
+          description: Game not found
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/RequestLimiter'
+        '501':
+          description: New Game ID missing
+  /user/signin:
+    post:
+      tags:
+        - user
+      description: 'Login user, return a jwt token'
+      operationId: signin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+            example:
+              email: test@atomicspace.fr
+              password: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/LoginLimiter'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /user:
+    post:
+      tags:
+        - user
+      summary: Add new user
+      description: Add new user, only admin can perform this operation
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User created
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/LoginLimiter'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    get:
+      tags:
+          - user
+      summary: Check token validity and return user info
+      description: Check token validity of current user and if valid, return user info
+      operationId: checkUser
+      responses:
+        '200':
+          description: Token valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/LoginLimiter'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags:
+        - user
+      summary: Update user info
+      description: 'Update user info only admin or account owner can perform this operation.'
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated
+        '401':
+           $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/LoginLimiter'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /scan:
+    post:
+      tags:
+        - scan
+      summary: Scan collection
+      description: Scan collections and replace all existing datas but preserve game ids. Only admin can perform this operation.
+      operationId: scanCollection
+      parameters: []
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/LoginLimiter'
+    put:
+      tags:
+        - scan
+      summary: Update collection
+      description: 'Find new and unreferenced game in collection and scrap datas. Only admin can perform this operation.'
+      operationId: updateCollection
+      parameters: []
+      responses:
+        '200':
+          description: OK
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '429':
+          $ref: '#/components/responses/LoginLimiter'
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          example: user@email.com
+        password:
+          type: string
+          writeOnly: true
+          example: '12345'
+        name:
+          type: string
+          example: John
+        loginCount:
+          type: integer
+          format: int32
+          readOnly: true
+          example: 1
+        isAdmin:
+          type: boolean
+          readOnly: true
+          example: false
+        isEnabled:
+          type: boolean
+          readOnly: true
+          default: true
+        canDownload:
+          type: boolean
+          readOnly: true
+          default: false
+    Game:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 123456
+        name:
+          type: string
+          readOnly: true
+          example: Wonderful Game
+        description:
+          type: string
+          readOnly: true
+          example: A wonderful game
+        released:
+          type: string
+          readOnly: true
+          example: 01/01/1979
+        score:
+          type: integer
+          readOnly: true
+          example: 98
+        background_image:
+          type: string
+          readOnly: true
+          example: http://gamedb.com/image.jpg
+        developers:
+          type: array
+          readOnly: true
+          xml:
+            wrapped: true
+          items:
+            type: string
+        genres:
+          type: array
+          readOnly: true
+          xml:
+            wrapped: true
+          items:
+            type: string
+        sreenshots:
+          type: array
+          readOnly: true
+          xml:
+            wrapped: true
+          items:
+            type: string
+        size:
+          type: integer
+          readOnly: true
+        gameFolder:
+          type: string
+          readOnly: true
+          example: /games/wonderful_game
+        gameFiles:
+          type: array
+          readOnly: true
+          xml:
+            wrapped: true
+          items:
+            type: string
+  securitySchemes:
+    # basicAuth:
+    #   type: http
+    #   scheme: basic
+    bearerAuth:         
+      type: http
+      scheme: bearer
+      bearerFormat: JWT  
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+    InternalError:
+      description: Internal Error
+    LoginLimiter:
+      description: Too many login, please try again later.
+    RequestLimiter:
+      description: Too many attempts, please try again later.
+security:
+  - bearerAuth: []  
+          

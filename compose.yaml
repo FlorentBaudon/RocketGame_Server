@@ -1,0 +1,22 @@
+# Use root/example as user/password credentials
+version: '3.1'
+volumes: 
+  cifs-volume:
+    driver_opts:
+      type: cifs 
+      o: "username=guest,password=guest,vers=3.0"
+      device: "//192.168.0.20/Storage/GOG/games"
+services:
+  rocketgameserver:
+    image: rocketgameserver
+    restart: always
+    environment:
+      - PUID=998
+      - PGID=100
+      - TZ=Etc/UTC
+    volumes:
+      - C:\Users\Florent\Desktop\Dev\RocketGameProject\RocketGame_Server\databases\Mongo:/rocketgame/databases
+      - cifs-volume:/rocketgame/datas/games:ro
+    ports:
+      - 8080:8080
+      - 27017:27017

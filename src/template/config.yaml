@@ -1,0 +1,18 @@
+  server:
+    port: 7070
+    RAWG_API_KEY: ''
+    JWT_SECRET: ''
+    scanOnStart: false
+    gameFolders: [./datas/games]
+  mongodb:
+    mongoURL : 127.0.0.1:27017
+    dbUser : root
+    dbPassword: example
+  user:
+    ttlToken: "1d"
+  security:
+    nbRequest : 5
+    time: 15 # in minute
+    password:
+      minlength: 8
+      maxLength: 64
